@@ -1,3 +1,5 @@
+# .github/workflows/quality.yml
+
 name: Code Quality
 
 on:
@@ -6,17 +8,17 @@ on:
   pull_request:
     branches: [ main ]
 
-services:
-  sonarqube:
-    image: sonarqube:10.1-community
-    ports:
-      - 9000:9000
-    env:
-      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: true
-
 jobs:
   quality:
     runs-on: ubuntu-latest
+    
+    services:
+      sonarqube:
+        image: sonarqube:10.1-community
+        ports:
+          - 9000:9000
+        env:
+          SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: true
     
     steps:
     - uses: actions/checkout@v4
