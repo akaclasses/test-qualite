@@ -1,3 +1,5 @@
+# .github/workflows/quality.yml
+
 name: Code Quality
 
 on:
@@ -52,74 +54,25 @@ jobs:
           -Dsonar.login=admin \
           -Dsonar.password=admin
 
-    - name: Wait for analysis completion
+    - name: Get Results and Display
       run: |
         sleep 30
-
-    - name: Generate SonarQube report
-      run: |
-        mkdir -p sonar-reports
         
-        # Récupération des métriques principales
-        curl -u admin:admin "http://localhost:9000/api/measures/component?component=python-demo&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc,complexity" > sonar-reports/metrics.json
+        # Récupérer les métriques
+        METRICS=$(curl -s -u admin:admin "http://localhost:9000/api/measures/component?component=python-demo&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density")
         
-        # Récupération des issues
-        curl -u admin:admin "http://localhost:9000/api/issues/search?componentKeys=python-demo" > sonar-reports/issues.json
+        # Afficher dans le job summary (visible directement dans GitHub)
+        echo "# 📊 SonarQube Analysis Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
         
-        # Génération d'un rapport HTML simple
-        cat > sonar-reports/report.html << 'EOF'
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>SonarQube Analysis Report</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .metric { display: inline-block; margin: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
-                .bugs { background-color: #ffebee; }
-                .vulnerabilities { background-color: #fff3e0; }
-                .code_smells { background-color: #f3e5f5; }
-                .coverage { background-color: #e8f5e8; }
-            </style>
-        </head>
-        <body>
-            <h1>📊 SonarQube Analysis Report</h1>
-            <p><em>Generated on: $(date)</em></p>
-            
-            <h2>🔍 Key Metrics</h2>
-            <p>Download the JSON files for detailed metrics and issues.</p>
-            
-            <div class="metric bugs">
-                <h3>🐛 Bugs</h3>
-                <p>Check metrics.json for count</p>
-            </div>
-            
-            <div class="metric vulnerabilities">
-                <h3>🔒 Vulnerabilities</h3>
-                <p>Check metrics.json for count</p>
-            </div>
-            
-            <div class="metric code_smells">
-                <h3>🧹 Code Smells</h3>
-                <p>Check metrics.json for count</p>
-            </div>
-            
-            <div class="metric coverage">
-                <h3>📈 Coverage</h3>
-                <p>Check metrics.json for percentage</p>
-            </div>
-            
-            <h2>📋 Files Generated</h2>
-            <ul>
-                <li><strong>metrics.json</strong> - Key quality metrics</li>
-                <li><strong>issues.json</strong> - Detailed list of all issues found</li>
-            </ul>
-        </body>
-        </html>
-        EOF
-
-    - name: Upload SonarQube reports
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: sonar-analysis-report
-        path: sonar-reports/
+        # Extraire et afficher chaque métrique
+        echo "$METRICS" | jq -r '.component.measures[] | "| " + .metric + " | " + .value + " |"' >> $GITHUB_STEP_SUMMARY
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "🔗 **View details:** Click on job summary above" >> $GITHUB_STEP_SUMMARY
+        
+        # Afficher aussi dans les logs
+        echo "=== SONARQUBE RESULTS ==="
+        echo "$METRICS" | jq '.'
