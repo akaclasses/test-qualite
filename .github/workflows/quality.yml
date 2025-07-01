@@ -61,18 +61,12 @@ jobs:
         # Récupérer les métriques
         METRICS=$(curl -s -u admin:admin "http://localhost:9000/api/measures/component?component=python-demo&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density")
         
-        # Afficher dans le job summary (visible directement dans GitHub)
-        echo "# 📊 SonarQube Analysis Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        # Récupérer les détails des issues
+        ISSUES=$(curl -s -u admin:admin "http://localhost:9000/api/issues/search?componentKeys=python-demo")
         
-        # Extraire et afficher chaque métrique
-        echo "$METRICS" | jq -r '.component.measures[] | "| " + .metric + " | " + .value + " |"' >> $GITHUB_STEP_SUMMARY
-        
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "🔗 **View details:** Click on job summary above" >> $GITHUB_STEP_SUMMARY
-        
-        # Afficher aussi dans les logs
-        echo "=== SONARQUBE RESULTS ==="
+        echo "=== 📊 SONARQUBE RESULTS ==="
         echo "$METRICS" | jq '.'
+        
+        echo ""
+        echo "=== 🔍 DETAILED ISSUES ==="
+        echo "$ISSUES" | jq -r '.issues[] | "❌ \(.severity) - \(.type): \(.message)\n   📁 File: \(.component | split(":") | last)\n   📍 Line: \(.textRange.startLine // "N/A")\n"'
